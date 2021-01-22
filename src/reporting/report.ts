@@ -1,4 +1,3 @@
-import { DnsLookupResult } from "./dns-lookup-result";
 import { PortReport } from "./port-report";
 
 export class HostReport {
