@@ -1,0 +1,22 @@
+{
+  "name": "portscanner",
+  "version": "1.0.0",
+  "description": "Scanning which ports are avilable",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node ./dist/index.js",
+    "build": "tsc",
+    "test": "test"
+  },
+  "author": "Tomer Khalili",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/n-readlines": "^1.0.1",
+    "@types/node": "^14.14.21",
+    "@types/tcp-port-used": "^1.0.0"
+  },
+  "dependencies": {
+    "n-readlines": "^1.0.1",
+    "tcp-port-used": "^1.0.2"
+  }
+}

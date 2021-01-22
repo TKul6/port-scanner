@@ -1,0 +1,6 @@
+localhost 8080
+google.com 80
+localhost 9200
+youtube.com 8888
+google.com 443
+youtube.com 4422
