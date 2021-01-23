@@ -10,10 +10,10 @@ const reporter = getReporter();
 
 const portScanner = new PortScanner(fileDataProvider, reporter);
 
- portScanner.start();
+portScanner.start();
 
- function getReporter(): Reporter {
- if(process.argv.findIndex((arg: string) => arg === '--json') >= 0) {
-     return new JsonConsoleReporter();
- }
- }
+function getReporter(): Reporter {
+    if (process.argv.findIndex((arg: string) => arg === '--json') >= 0) {
+        return new JsonConsoleReporter();
+    }
+}

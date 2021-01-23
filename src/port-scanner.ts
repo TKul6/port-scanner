@@ -4,24 +4,22 @@ import { Scanner } from "./scanner";
 
 export class PortScanner {
 
-constructor(private dataProvider: DataProvider, private reporter?: Reporter) {
+    constructor(private dataProvider: DataProvider, private reporter?: Reporter) {
+    }
 
-}
+    public async start(): Promise<void> {
 
-public async start(): Promise<void> {
+        const hosts = await this.dataProvider.provideHostsInformation();
 
+        const scanner = new Scanner();
 
-    const hosts = await this.dataProvider.provideHostsInformation();
+        const report = await scanner.scanAllHosts(hosts);
 
-    const scanner = new Scanner();
+        if (this.reporter) {
 
-     const report = await scanner.scanAllHosts(hosts);
-
-     if (this.reporter) {
-     
-     this.reporter.report(report);
-     }
-}
+            this.reporter.report(report);
+        }
+    }
 
 }
 

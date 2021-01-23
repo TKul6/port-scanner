@@ -1,4 +1,4 @@
-import { HostReport } from "../report";
+import { HostReport } from "../host-report";
 
 export interface Reporter {
 

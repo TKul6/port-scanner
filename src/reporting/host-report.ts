@@ -7,11 +7,8 @@ export class HostReport {
     dnsLookupSucceed: boolean;
     portReports = new Array<PortReport>();
 
-    constructor(public host: string) { 
-        
+    constructor(public host: string) {
+
     }
-
-
-
 }
 

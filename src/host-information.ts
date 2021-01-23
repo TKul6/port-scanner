@@ -1,5 +1,5 @@
 export class HostInformation {
 
-constructor(public host: string, public ports: Array<number>) {}
+    constructor(public host: string, public ports: Array<number>) { }
 
 }

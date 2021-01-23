@@ -1,7 +1,6 @@
 import * as dns from 'dns';
-import { Socket } from 'net'
 import { PortAvailabilityResultType, PortReport } from './reporting/port-report';
-import { HostReport } from './reporting/report'
+import { HostReport } from './reporting/host-report'
 import * as ipParser from 'ip6addr';
 import { PromiseSocket, TimeoutError } from 'promise-socket';
 import { HostInformation } from './host-information';
@@ -17,8 +16,6 @@ export class Scanner {
     public async scanAllHosts(hosts: Array<HostInformation>): Promise<Array<HostReport>> {
 
         const reports = new Array<HostReport>();
-
-
         for (let hostInformation of hosts) {
             const report = await this.scanSingleHost(hostInformation);
             reports.push(report);
@@ -34,14 +31,14 @@ export class Scanner {
 
         try {
             const startMeasure = process.hrtime();
-            const ip = await this.convertToIp(hostInformation.host);
+            const ip = await this.resolveToIp(hostInformation.host);
             const executionTimeInMS = process.hrtime(startMeasure)[1] / NANO_SECOND_IN_MS;
             report.ip = ipParser.parse(ip).toString();;
             report.dnsLookupExecutionTime = executionTimeInMS;
             report.dnsLookupSucceed = true;
 
         } catch {
-            console.error('Failed to resolve host ', hostInformation.host);
+            console.error(`Failed to resolve host '${hostInformation.host}'. ports of this host will not be scanned.`);
             report.dnsLookupSucceed = false;
             return report;
         }
@@ -80,8 +77,7 @@ export class Scanner {
         return new PortReport(port, portAvailability);
     }
 
-    private convertToIp(host: string): Promise<string> {
-
+    private resolveToIp(host: string): Promise<string> {
 
         return new Promise<string>(async (resolve, reject) => {
 
@@ -98,13 +94,8 @@ export class Scanner {
             finally {
                 clearTimeout(timeoutHandler);
             }
-
         })
-
-
     }
-
-
 }
 
 
