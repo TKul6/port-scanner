@@ -11,11 +11,13 @@
   "author": "Tomer Khalili",
   "license": "ISC",
   "devDependencies": {
+    "@types/ip6addr": "^0.2.1",
     "@types/n-readlines": "^1.0.1",
     "@types/node": "^14.14.21",
     "@types/tcp-port-used": "^1.0.0"
   },
   "dependencies": {
+    "ip6addr": "^0.2.3",
     "n-readlines": "^1.0.1",
     "tcp-port-used": "^1.0.2"
   }

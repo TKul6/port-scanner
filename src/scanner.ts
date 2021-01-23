@@ -1,7 +1,9 @@
 import * as dns from 'dns';
 import { Socket } from 'net'
 import { PortReport } from './reporting/port-report';
-import { HostReport } from './reporting/report';
+import { HostReport } from './reporting/report'
+import * as ipParser from 'ip6addr';
+import { resourceLimits } from 'worker_threads';
 
 const NANO_SECOND_IN_MILLI_SECOND = 1000000;
 const DNS_LOOKUP_TIMEOUT_IN_MILLI_SECONDS = 4000;
@@ -34,21 +36,25 @@ export class Scanner {
             const startMeasure = process.hrtime();
             const ip = await this.convertToIp(host);
             const executionTimeInMS = process.hrtime(startMeasure)[1] / NANO_SECOND_IN_MILLI_SECOND;
-            report.ip = ip;
+            report.ip = ipParser.parse(ip).toString();;
             report.dnsLookupExecutionTime = executionTimeInMS;
             report.dnsLookupSucceed = true;
 
         } catch {
             console.error('Failed to resolve host ', host);
             report.dnsLookupSucceed = false;
+            return report;
         }
 
         for (let port of ports) {
             promises.push(this.scanAddress(host, port));
         }
-        const portReports = await Promise.all(promises); // TODO: change to whenSetteled.
+        const resolvedPromises = await Promise.allSettled(promises); 
 
-        report.portReports = portReports;
+        // Currently promises cannot be rejected, but just in case the implementation will change.
+        report.portReports = resolvedPromises
+        .filter((result: PromiseSettledResult<PortReport>) => result.status === 'fulfilled')
+        .map((result: PromiseFulfilledResult<PortReport>) => result.value);
 
         return report;
     }
@@ -79,26 +85,30 @@ export class Scanner {
 
     }
 
-    private async convertToIp(host: string): Promise<string> {
-
-        // TODO add timeout
-
-        // TODO Support IPV6
-
-        return new Promise<string>((resolve, reject) => {
-            dns.lookup(host, {}, ((err: Error, address: string, family: number) => {
-
-                if (err) {
-                    // TODO: log
-                    reject(err);
-                }
-                resolve(address)
-            }));
-
-        });
+     private convertToIp(host: string): Promise<string> {
 
 
-    }
+        return new Promise<string>(async(resolve, reject) => {
+
+            const timeoutHandler = setTimeout(() => reject('timeout'), DNS_LOOKUP_TIMEOUT_IN_MILLI_SECONDS);
+
+            try {
+                const data = await dns.promises.lookup(host, {all: true});
+                resolve(data[data.length -1].address);
+
+            } catch {
+                reject();
+            }
+            
+            finally {
+                clearTimeout(timeoutHandler);
+            }
+            
+        })
+        
+
+     }
+
 
 }
 
