@@ -1,13 +1,13 @@
 import * as dns from 'dns';
 import { Socket } from 'net'
-import { PortReport } from './reporting/port-report';
+import { PortAvailabilityResultType, PortReport } from './reporting/port-report';
 import { HostReport } from './reporting/report'
 import * as ipParser from 'ip6addr';
-import { resourceLimits } from 'worker_threads';
+import { PromiseSocket, TimeoutError } from 'promise-socket';
 
-const NANO_SECOND_IN_MILLI_SECOND = 1000000;
-const DNS_LOOKUP_TIMEOUT_IN_MILLI_SECONDS = 4000;
-const SOCKET_CONNECT_TIMEOUT_IN_MILLI = 2000;
+const NANO_SECOND_IN_MS = 1000000;
+const DNS_LOOKUP_TIMEOUT_IN_MS = 4000;
+const SOCKET_CONNECT_TIMEOUT_IN_MS = 2000;
 
 export class Scanner {
 
@@ -35,7 +35,7 @@ export class Scanner {
         try {
             const startMeasure = process.hrtime();
             const ip = await this.convertToIp(host);
-            const executionTimeInMS = process.hrtime(startMeasure)[1] / NANO_SECOND_IN_MILLI_SECOND;
+            const executionTimeInMS = process.hrtime(startMeasure)[1] / NANO_SECOND_IN_MS;
             report.ip = ipParser.parse(ip).toString();;
             report.dnsLookupExecutionTime = executionTimeInMS;
             report.dnsLookupSucceed = true;
@@ -49,65 +49,60 @@ export class Scanner {
         for (let port of ports) {
             promises.push(this.scanAddress(host, port));
         }
-        const resolvedPromises = await Promise.allSettled(promises); 
+        const resolvedPromises = await Promise.allSettled(promises);
 
         // Currently promises cannot be rejected, but just in case the implementation will change.
         report.portReports = resolvedPromises
-        .filter((result: PromiseSettledResult<PortReport>) => result.status === 'fulfilled')
-        .map((result: PromiseFulfilledResult<PortReport>) => result.value);
+            .filter((result: PromiseSettledResult<PortReport>) => result.status === 'fulfilled')
+            .map((result: PromiseFulfilledResult<PortReport>) => result.value);
 
         return report;
     }
 
     public async scanAddress(ip: string, port: number): Promise<PortReport> {
 
-        return new Promise<PortReport>((resolve, rejects) => {
+        const client = new PromiseSocket();
 
-            const client = new Socket();
+        client.setTimeout(SOCKET_CONNECT_TIMEOUT_IN_MS);
 
-            client.setTimeout(SOCKET_CONNECT_TIMEOUT_IN_MILLI, () => {
-                client.destroy();
-                resolve(new PortReport(port, 'timeout'));
-            })
+        let portAvailability: PortAvailabilityResultType;
+        try {
+            await client.connect(port, ip);
+            portAvailability = 'free'
+        } catch (error) {
+            if (error instanceof TimeoutError) {
+                portAvailability = 'timeout';
+            } else {
+                portAvailability = 'used'
+            }
+        }
 
-            // Todo: see if can be converted to promise???
-            client.on('error', (err) => {
-                client.end();
-                resolve(new PortReport(port,'used'))
-            });
-
-            client.connect(port, ip, () => {
-                client.end();
-                resolve(new PortReport(port, 'free'));
-            });
-
-        });
-
+        return new PortReport(port, portAvailability);
     }
 
-     private convertToIp(host: string): Promise<string> {
+    private convertToIp(host: string): Promise<string> {
 
 
-        return new Promise<string>(async(resolve, reject) => {
+        return new Promise<string>(async (resolve, reject) => {
 
-            const timeoutHandler = setTimeout(() => reject('timeout'), DNS_LOOKUP_TIMEOUT_IN_MILLI_SECONDS);
+            const timeoutHandler = setTimeout(() => reject('timeout'), DNS_LOOKUP_TIMEOUT_IN_MS);
 
             try {
-                const data = await dns.promises.lookup(host, {all: true});
-                resolve(data[data.length -1].address);
+                const data = await dns.promises.lookup(host, { all: true });
+                resolve(data[data.length - 1].address);
 
             } catch {
                 reject();
             }
-            
+
             finally {
                 clearTimeout(timeoutHandler);
             }
-            
-        })
-        
 
-     }
+        })
+
+
+    }
 
 
 }

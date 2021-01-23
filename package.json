@@ -19,6 +19,7 @@
   "dependencies": {
     "ip6addr": "^0.2.3",
     "n-readlines": "^1.0.1",
+    "promise-socket": "^7.0.0",
     "tcp-port-used": "^1.0.2"
   }
 }
