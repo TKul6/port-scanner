@@ -1,8 +1,7 @@
+import { HostInformation } from "../host-information";
+
 export interface DataProvider {
 
-    provideLine: () => string;
+    provideHostsInformation: () => Promise<Array<HostInformation>>;
 
-    end: boolean;
-
-    dispose: () => void;
 }

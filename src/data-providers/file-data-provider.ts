@@ -1,37 +1,31 @@
-import LineByLine = require("n-readlines");
+import { HostInformation } from "../host-information";
 import { DataProvider } from "./data-provider";
-const  lineByLine =  require('n-readlines');
+import * as promisesFs from 'fs/promises'
 
 export class FileDataProvider implements DataProvider {
 
-private fileReader: LineByLine = null;
-
-public end: boolean;
-
 constructor(private fileName: string) {
-    this.end = false;
 }
+    public async provideHostsInformation(): Promise<Array<HostInformation>> {
 
-    public provideLine(): string {
+        const hostToInformation = new Map<string, HostInformation>();
+        const fileContent =  await promisesFs.readFile(this.fileName,{encoding: 'ascii'});
+        fileContent
+        .split('\r\n')
+        .forEach((line: string) => {
+            const lineData =  line.split(' ');
 
-        if(!this.fileReader) {
-            this.initialize();
-        }
+            const host = lineData[0];
+            const port = Number(lineData[1]);
 
-        const line = this.fileReader.next();
+            if(hostToInformation.has(host)) {
+                hostToInformation.get(host).ports.push(port);
+            } else {
+                hostToInformation.set(host, new HostInformation(host, [port]))
+            }
+        });
 
-        this.end = line === false;
-
-        return line.toString('ascii').trim();
-
-    }
-    
-    public dispose() {
-        this.fileReader.close();
-    }
-
-    private initialize() {
-        this.fileReader = new LineByLine(this.fileName);
+        return Array.from(hostToInformation.values());
     }
 
 }

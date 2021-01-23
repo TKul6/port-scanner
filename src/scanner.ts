@@ -4,6 +4,7 @@ import { PortAvailabilityResultType, PortReport } from './reporting/port-report'
 import { HostReport } from './reporting/report'
 import * as ipParser from 'ip6addr';
 import { PromiseSocket, TimeoutError } from 'promise-socket';
+import { HostInformation } from './host-information';
 
 const NANO_SECOND_IN_MS = 1000000;
 const DNS_LOOKUP_TIMEOUT_IN_MS = 4000;
@@ -13,41 +14,40 @@ export class Scanner {
 
     constructor() { }
 
-    public async scanAllHosts(hosts: Map<string, Array<number>>): Promise<Array<HostReport>> {
+    public async scanAllHosts(hosts: Array<HostInformation>): Promise<Array<HostReport>> {
 
         const reports = new Array<HostReport>();
 
 
-        for (let host of hosts.keys()) {
-            const ports = hosts.get(host);
-            const report = await this.scanSingleHost(host, ports);
+        for (let hostInformation of hosts) {
+            const report = await this.scanSingleHost(hostInformation);
             reports.push(report);
         }
 
         return reports;
     }
 
-    public async scanSingleHost(host: string, ports: Array<number>): Promise<HostReport> {
+    public async scanSingleHost(hostInformation: HostInformation): Promise<HostReport> {
 
-        const report = new HostReport(host);
+        const report = new HostReport(hostInformation.host);
         const promises = new Array<Promise<PortReport>>();
 
         try {
             const startMeasure = process.hrtime();
-            const ip = await this.convertToIp(host);
+            const ip = await this.convertToIp(hostInformation.host);
             const executionTimeInMS = process.hrtime(startMeasure)[1] / NANO_SECOND_IN_MS;
             report.ip = ipParser.parse(ip).toString();;
             report.dnsLookupExecutionTime = executionTimeInMS;
             report.dnsLookupSucceed = true;
 
         } catch {
-            console.error('Failed to resolve host ', host);
+            console.error('Failed to resolve host ', hostInformation.host);
             report.dnsLookupSucceed = false;
             return report;
         }
 
-        for (let port of ports) {
-            promises.push(this.scanAddress(host, port));
+        for (let port of hostInformation.ports) {
+            promises.push(this.scanAddress(hostInformation.host, port));
         }
         const resolvedPromises = await Promise.allSettled(promises);
 
